@@ -142,7 +142,7 @@ class Rider(db.Model):
             "email": self.email,
             "address": self.address,
             "membership": self.membership,
-            # "trips": [trip.format() for trip in self.trips],
+            "num_trips": len(self.trips),
         }
 
 
@@ -158,12 +158,18 @@ class Trip(db.Model):
     end_time = Column(DateTime)
 
     def __init__(
-        self, origination_station_id, destination_station_id, bike_id, start_time
+        self,
+        rider_id,
+        origination_station_id,
+        bike_id,
+        start_time,
     ):
+        self.rider_id = rider_id
         self.origination_station_id = origination_station_id
-        self.destination_station_id = destination_station_id
         self.bike_id = bike_id
         self.start_time = start_time
+        self.destination_station_id = None
+        self.end_time = None
 
     def insert(self):
         db.session.add(self)
@@ -177,11 +183,35 @@ class Trip(db.Model):
         db.session.commit()
 
     def format(self):
-        return {
-            "id": self.id,
-            "origination_station_id": self.origination_station_id,
-            "destination_station_id": self.destination_station_id,
-            "bike_id": self.bike_id,
-            "start_time": self.start_time,
-            "end_time": self.end_time,
-        }
+        rider = Rider.query.get(self.rider_id)
+        orgi_station = Station.query.get(self.origination_station_id)
+
+        # return if trip has not ended
+        if self.destination_station_id is not None:
+            dest_station = Station.query.get(self.destination_station_id)
+            return {
+                "id": self.id,
+                "rider_id": self.rider_id,
+                "rider": rider.name,
+                "origination_station_id": self.origination_station_id,
+                "origination_station": orgi_station.name,
+                "destination_station_id": self.destination_station_id,
+                "destination_station": dest_station.name,
+                "bike_id": self.bike_id,
+                "start_time": self.start_time,
+                "end_time": self.end_time,
+            }
+        # return if ended
+        else:
+            return {
+                "id": self.id,
+                "rider_id": self.rider_id,
+                "rider": rider.name,
+                "origination_station_id": self.origination_station_id,
+                "origination_station": orgi_station.name,
+                "destination_station_id": self.destination_station_id,
+                "destination_station": None,
+                "bike_id": self.bike_id,
+                "start_time": self.start_time,
+                "end_time": self.end_time,
+            }
