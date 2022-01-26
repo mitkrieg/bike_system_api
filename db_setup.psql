@@ -271,7 +271,7 @@ COPY public.stations (id, name, capacity, latitude, longitude, active) FROM stdi
 1	Broadway	20	42.4324	-87.4234	t
 2	Amsterdam	15	43.525	44.5345	t
 3	West End	20	42.5324	-83.4234	t
-4	Columbus	10	44.525	44.5345	t
+4	Columbus	5	44.525	44.5345	t
 5	14th Street	24	12.5324	-83.4234	t
 6	7th Ave	13	32.525	44.5345	t
 7	Route 66	20	42.4324	-87.4234	t
@@ -307,28 +307,28 @@ COPY public.trips (id, origination_station_id, destination_station_id, bike_id, 
 -- Name: bikes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.bikes_id_seq', 16, true);
+SELECT pg_catalog.setval('public.bikes_id_seq', 15, true);
 
 
 --
 -- Name: riders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.riders_id_seq', 13, true);
+SELECT pg_catalog.setval('public.riders_id_seq', 12, true);
 
 
 --
 -- Name: stations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.stations_id_seq', 13, true);
+SELECT pg_catalog.setval('public.stations_id_seq', 12, true);
 
 
 --
 -- Name: trips_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.trips_id_seq', 13, true);
+SELECT pg_catalog.setval('public.trips_id_seq', 12, true);
 
 
 --

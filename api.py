@@ -45,6 +45,8 @@ def create_app():
     ####### ROUTES #######
 
     ### BIKES ###
+
+    # GET List of Bikes paginated
     @app.route("/bikes")
     def get_bikes():
 
@@ -54,6 +56,7 @@ def create_app():
         except:
             abort(422)
 
+        # If no bikes return 404
         if len(current_page) == 0:
             abort(404)
 
@@ -66,9 +69,11 @@ def create_app():
             }
         )
 
+    # create bike
     @app.route("/bikes", methods=["POST"])
     def create_bike():
 
+        # get data from json
         body = request.get_json()
 
         model = body.get("model", None)
@@ -76,16 +81,14 @@ def create_app():
         electric = body.get("electric", None)
         current_station_id = body.get("current_station_id", None)
 
-        if current_station_id is None or current_station_id not in [
-            station.id for station in Station.query.all()
-        ]:
-            print("station not found")
+        # if station does not exist return 404
+        if current_station_id not in [station.id for station in Station.query.all()]:
             abort(404)
 
         station = Station.query.get(current_station_id)
 
+        # if station capcity is exceeded by adding a bike return 400
         if station.capacity <= len(station.bikes):
-            print("too many bikes at station")
             abort(400)
 
         try:
@@ -97,13 +100,14 @@ def create_app():
                 current_station_id=current_station_id,
             )
 
-            bike.insert()
-
             bikes = Bike.query.order_by(Bike.id).all()
             current_page = paginate(request, bikes)
 
+            # if no bikes on page return 404
             if len(current_page) == 0:
                 abort(404)
+
+            bike.insert()
 
             return jsonify(
                 {
@@ -132,9 +136,10 @@ def create_app():
             return jsonify(
                 {
                     "success": True,
-                    "deleted": bike_id,
+                    "deleted_bike_id": int(bike_id),
                     "bikes": current_page,
-                    "total_bikes": len(remaining_bikes),
+                    "total_num_bikes": len(remaining_bikes),
+                    "page": request.args.get("page", 1, type=int),
                 }
             )
         except:
@@ -151,43 +156,43 @@ def create_app():
         current_station_id = body.get("current_station_id", None)
         needs_maintenance = body.get("needs_maintenance", None)
 
-        try:
-            bike = Bike.query.get(bike_id)
-            if bike is None:
-                abort(404)
+        bike = Bike.query.get(bike_id)
 
-            if model is not None:
-                bike.model = model
+        if bike is None:
+            abort(404)
 
-            if manufactured_at is not None:
-                bike.manufactured_at = manufactured_at
+        if model is not None:
+            bike.model = model
 
-            if electric is not None:
-                bike.electric = electric
+        if manufactured_at is not None:
+            bike.manufactured_at = manufactured_at
 
-            if current_station_id is None or current_station_id not in [
+        if electric is not None:
+            bike.electric = electric
+
+        if current_station_id is not None:
+
+            if current_station_id not in [
                 station.id for station in Station.query.all()
             ]:
-                print("station not found")
                 abort(404)
 
             station = Station.query.get(current_station_id)
 
-            if station.capacity >= len(station.bikes):
-                print("too many bikes at station")
+            if station.capacity <= len(station.bikes):
                 abort(400)
 
             bike.current_station_id = current_station_id
 
-            if needs_maintenance is not None:
-                bike.needs_maintenance = needs_maintenance
+        if needs_maintenance is not None:
+            bike.needs_maintenance = needs_maintenance
 
+        try:
             bike.update()
 
             return jsonify({"success": True, "bike_updated": bike.format()})
 
         except Exception as error:
-            print(error)
             abort(422)
 
     ### Stations ###
@@ -198,7 +203,6 @@ def create_app():
             stations = Station.query.order_by(Station.id).all()
             current_page = paginate(request, stations)
         except Exception as e:
-            print(e)
             abort(422)
 
         if len(current_page) == 0:
@@ -223,6 +227,12 @@ def create_app():
         latitude = body.get("latitude", None)
         longitude = body.get("longitude", None)
 
+        stations = Station.query.order_by(Station.id).all()
+        current_page = paginate(request, stations)
+
+        if len(current_page) == 0:
+            abort(404)
+
         try:
 
             station = Station(
@@ -234,17 +244,11 @@ def create_app():
 
             station.insert()
 
-            stations = Station.query.order_by(Station.id).all()
-            current_page = paginate(request, stations)
-
-            if len(current_page) == 0:
-                abort(404)
-
             return jsonify(
                 {
                     "success": True,
                     "created_station_id": station.id,
-                    "station": current_page,
+                    "stations": current_page,
                     "total_num_stations": len(stations),
                     "page": request.args.get("page", 1, type=int),
                 }
@@ -267,9 +271,9 @@ def create_app():
             return jsonify(
                 {
                     "success": True,
-                    "deleted": station_id,
+                    "deleted_station_id": int(station_id),
                     "stations": current_page,
-                    "total_stations": len(remaining_stations),
+                    "total_num_stations": len(remaining_stations),
                 }
             )
         except:
@@ -286,32 +290,32 @@ def create_app():
         longitude = body.get("longitude", None)
         active = body.get("active", None)
 
+        station = Station.query.get(station_id)
+
+        if station is None:
+            abort(404)
+
+        if name is not None:
+            station.name = name
+
+        if capacity is not None:
+            station.capacity = capacity
+
+        if latitude is not None:
+            station.latitude = latitude
+
+        if longitude is not None:
+            station.longitude = longitude
+
+        if active is not None:
+            station.active = active
+
         try:
-            station = Station.query.get(station_id)
-            if station is None:
-                abort(404)
-
-            if name is not None:
-                station.name = name
-
-            if capacity is not None:
-                station.capacity = capacity
-
-            if latitude is not None:
-                station.latitude = latitude
-
-            if longitude is not None:
-                station.longitude = longitude
-
-            if active is not None:
-                station.active = active
-
             station.update()
 
             return jsonify({"success": True, "station_updated": station.format()})
 
         except Exception as error:
-            print(error)
             abort(422)
 
     #### Riders ####
@@ -323,7 +327,6 @@ def create_app():
             riders = Rider.query.order_by(Rider.id).all()
             current_page = paginate(request, riders)
         except Exception as e:
-            print(e)
             abort(422)
 
         if len(current_page) == 0:
@@ -368,7 +371,7 @@ def create_app():
             return jsonify(
                 {
                     "success": True,
-                    "created_station_id": rider.id,
+                    "created_rider_id": rider.id,
                     "riders": current_page,
                     "total_num_riders": len(riders),
                     "page": request.args.get("page", 1, type=int),
@@ -392,8 +395,8 @@ def create_app():
             return jsonify(
                 {
                     "success": True,
-                    "deleted": rider_id,
-                    "stations": current_page,
+                    "deleted_rider_id": int(rider_id),
+                    "riders": current_page,
                     "total_num_riders": len(remaining_riders),
                 }
             )
@@ -410,29 +413,28 @@ def create_app():
         address = body.get("address", None)
         membership = body.get("membership", None)
 
+        rider = Rider.query.get(rider_id)
+        if rider is None:
+            abort(404)
+
+        if name is not None:
+            rider.name = name
+
+        if email is not None:
+            rider.email = email
+
+        if address is not None:
+            rider.address = address
+
+        if membership is not None:
+            rider.membership = membership
+
         try:
-            rider = Station.query.get(rider_id)
-            if rider is None:
-                abort(404)
-
-            if name is not None:
-                rider.name = name
-
-            if email is not None:
-                rider.email = email
-
-            if address is not None:
-                rider.address = address
-
-            if membership is not None:
-                rider.membership = membership
-
             rider.update()
 
-            return jsonify({"success": True, "station_updated": rider.format()})
+            return jsonify({"success": True, "rider_updated": rider.format()})
 
         except Exception as error:
-            print(error)
             abort(422)
 
     #### Trips ####
@@ -444,7 +446,6 @@ def create_app():
             trips = Trip.query.order_by(Trip.id).all()
             current_page = paginate(request, trips)
         except Exception as e:
-            print(e)
             abort(422)
 
         if len(current_page) == 0:
@@ -463,14 +464,10 @@ def create_app():
     def start_trip():
 
         body = request.get_json()
-        print(body)
 
         bike_id = body.get("bike_id", None)
         rider_id = body.get("rider_id", None)
         start_time = dt.now()
-
-        print(bike_id)
-        print(rider_id)
 
         # abort if bike is already taken on unended trip
         if bike_id in [
@@ -480,15 +477,13 @@ def create_app():
 
         try:
             origination_station_id = Bike.query.get(bike_id).current_station_id
-            print(origination_station_id)
 
             trip = Trip(rider_id, origination_station_id, bike_id, start_time)
             trip.insert()
-            print(trip.end_time)
 
             return jsonify(
                 {
-                    "sucess": True,
+                    "success": True,
                     "started_trip": {
                         "bike_id": trip.bike_id,
                         "rider_id": trip.rider_id,
@@ -499,7 +494,6 @@ def create_app():
                 }
             )
         except Exception as e:
-            print(e)
             abort(422)
 
     @app.route("/trips/<trip_id>", methods=["PATCH"])
@@ -507,17 +501,18 @@ def create_app():
 
         body = request.get_json()
         destination_station_id = body.get("destination_station_id", None)
-        end_time = dt.now()
-
-        print(body)
 
         trip = Trip.query.get(trip_id)
+
+        # abort if trip not found
+        if trip is None:
+            abort(404)
+
         bike = Bike.query.get(trip.bike_id)
         end_station = Station.query.get(destination_station_id)
-        print(end_station.name)
 
-        # abort if trip or end_station not found
-        if trip is None or end_station is None:
+        # about if end station not found
+        if end_station is None:
             abort(404)
         # abort if trip has already ended
         elif trip.end_time is not None:
@@ -525,11 +520,13 @@ def create_app():
         # abort if there are too many bikes at station
         elif end_station.capacity <= len(end_station.bikes):
             abort(400)
+        # if ok end trip
+        else:
+            end_time = dt.now()
 
         try:
             trip.end_time = end_time
             trip.destination_station_id = destination_station_id
-            print("xxxxx")
 
             bike.current_station_id = destination_station_id
 
@@ -538,7 +535,7 @@ def create_app():
 
             return jsonify(
                 {
-                    "sucess": True,
+                    "success": True,
                     "ended_trip": trip.format(),
                 }
             )
@@ -575,7 +572,6 @@ def create_app():
 
     @app.errorhandler(422)
     def unprocessable(error):
-        print(error)
         return (
             jsonify(
                 {
@@ -589,7 +585,6 @@ def create_app():
 
     @app.errorhandler(500)
     def internal_error(error):
-        print(error)
         return (
             jsonify(
                 {
