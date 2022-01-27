@@ -6,6 +6,7 @@ from models import Rider, Station, Bike, Trip, setup_db
 from flask_moment import Moment
 from flask_cors import CORS
 from flask import Flask, Response, request, abort, jsonify
+from auth import AuthError, requires_auth
 
 # from .auth.auth import AuthError, requires_auth
 
@@ -48,7 +49,8 @@ def create_app():
 
     # GET List of Bikes paginated
     @app.route("/bikes")
-    def get_bikes():
+    @requires_auth(permission="get:bikes")
+    def get_bikes(payload):
 
         try:
             bikes = Bike.query.order_by(Bike.id).all()
@@ -71,7 +73,8 @@ def create_app():
 
     # create bike
     @app.route("/bikes", methods=["POST"])
-    def create_bike():
+    @requires_auth(permission="edit:bikes")
+    def create_bike(payload):
 
         # get data from json
         body = request.get_json()
@@ -122,7 +125,8 @@ def create_app():
             abort(422)
 
     @app.route("/bikes/<bike_id>", methods=["DELETE"])
-    def delete_bike(bike_id):
+    @requires_auth(permission="edit:bikes")
+    def delete_bike(payload, bike_id):
         bike = Bike.query.get(bike_id)
 
         if bike is None:
@@ -146,7 +150,8 @@ def create_app():
             abort(500)
 
     @app.route("/bikes/<bike_id>", methods=["PATCH"])
-    def update_bike(bike_id):
+    @requires_auth(permission="edit:bikes")
+    def update_bike(payload, bike_id):
 
         body = request.get_json()
 
@@ -197,7 +202,8 @@ def create_app():
 
     ### Stations ###
     @app.route("/stations")
-    def get_stations():
+    @requires_auth(permission="get:stations")
+    def get_stations(payload):
 
         try:
             stations = Station.query.order_by(Station.id).all()
@@ -218,7 +224,8 @@ def create_app():
         )
 
     @app.route("/stations", methods=["POST"])
-    def create_station():
+    @requires_auth(permission="edit:stations")
+    def create_station(payload):
 
         body = request.get_json()
 
@@ -257,7 +264,8 @@ def create_app():
             abort(422)
 
     @app.route("/stations/<station_id>", methods=["DELETE"])
-    def delete_station(station_id):
+    @requires_auth(permission="edit:stations")
+    def delete_station(payload, station_id):
         station = Station.query.get(station_id)
 
         if station is None:
@@ -280,7 +288,8 @@ def create_app():
             abort(500)
 
     @app.route("/stations/<station_id>", methods=["PATCH"])
-    def update_station(station_id):
+    @requires_auth(permission="edit:stations")
+    def update_station(payload, station_id):
 
         body = request.get_json()
 
@@ -321,7 +330,8 @@ def create_app():
     #### Riders ####
 
     @app.route("/riders")
-    def get_riders():
+    @requires_auth(permission="get:riders")
+    def get_riders(payload):
 
         try:
             riders = Rider.query.order_by(Rider.id).all()
@@ -342,7 +352,8 @@ def create_app():
         )
 
     @app.route("/riders", methods=["POST"])
-    def create_rider():
+    @requires_auth(permission="edit:riders")
+    def create_rider(payload):
 
         body = request.get_json()
 
@@ -381,7 +392,8 @@ def create_app():
             abort(422)
 
     @app.route("/riders/<rider_id>", methods=["DELETE"])
-    def delete_rider(rider_id):
+    @requires_auth(permission="edit:riders")
+    def delete_rider(payload, rider_id):
         rider = Station.query.get(rider_id)
 
         if rider is None:
@@ -404,7 +416,8 @@ def create_app():
             abort(500)
 
     @app.route("/riders/<rider_id>", methods=["PATCH"])
-    def update_rider(rider_id):
+    @requires_auth(permission="edit:riders")
+    def update_rider(payload, rider_id):
 
         body = request.get_json()
 
@@ -440,7 +453,8 @@ def create_app():
     #### Trips ####
 
     @app.route("/trips")
-    def get_trips():
+    @requires_auth(permission="get:trips")
+    def get_trips(payload):
 
         try:
             trips = Trip.query.order_by(Trip.id).all()
@@ -461,7 +475,8 @@ def create_app():
         )
 
     @app.route("/trips", methods=["POST"])
-    def start_trip():
+    @requires_auth("create:trips")
+    def start_trip(payload):
 
         body = request.get_json()
 
@@ -497,7 +512,8 @@ def create_app():
             abort(422)
 
     @app.route("/trips/<trip_id>", methods=["PATCH"])
-    def end_trip(trip_id):
+    @requires_auth("create:trips")
+    def end_trip(payload, trip_id):
 
         body = request.get_json()
         destination_station_id = body.get("destination_station_id", None)
@@ -596,18 +612,18 @@ def create_app():
             500,
         )
 
-    # @app.errorhandler(AuthError)
-    # def auth_error(error):
-    #     return (
-    #         jsonify(
-    #             {
-    #                 "success": False,
-    #                 "error": error.status_code,
-    #                 "message": error.error,
-    #             }
-    #         ),
-    #         error.status_code,
-    #     )
+    @app.errorhandler(AuthError)
+    def auth_error(error):
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": error.status_code,
+                    "message": error.error,
+                }
+            ),
+            error.status_code,
+        )
 
     return app
 
@@ -615,4 +631,4 @@ def create_app():
 APP = create_app()
 
 if __name__ == "__main__":
-    APP.run(host="localhost", port=5000, debug=True)
+    APP.run(host="127.0.0.1", port=5000, debug=True)
