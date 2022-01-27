@@ -1,9 +1,14 @@
 import unittest
 import json
+from wsgiref import headers
 from flask_sqlalchemy import SQLAlchemy
-
+import os
 from api import create_app
 from models import setup_db, Station, Bike, Trip, Rider, DATABASE_PATH
+
+
+RIDER_BEARER_TOKEN = os.getenv("RIDER_TOKEN")
+MANAGER_BEARER_TOKEN = os.getenv("MANAGER_TOKEN")
 
 
 class BikeSystemTest(unittest.TestCase):
@@ -29,6 +34,15 @@ class BikeSystemTest(unittest.TestCase):
             "membership": True,
         }
 
+        self.rider_auth_header = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + str(RIDER_BEARER_TOKEN),
+        }
+        self.manager_auth_header = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + str(MANAGER_BEARER_TOKEN),
+        }
+
         with self.app.app_context():
             self.db = SQLAlchemy()
             self.db.init_app(self.app)
@@ -39,7 +53,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_get_bikes(self):
         """Test for successful GET bikes endpoint"""
-        res = self.client().get("/bikes")
+        res = self.client().get("/bikes", headers=self.rider_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)  # Good request code
@@ -49,7 +63,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_get_stations(self):
         """Test for successful GET stations"""
-        res = self.client().get("/stations")
+        res = self.client().get("/stations", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)  # Good request code
@@ -59,7 +73,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_get_riders(self):
         """Test for successful GET riders"""
-        res = self.client().get("/riders")
+        res = self.client().get("/riders", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)  # Good request code
@@ -69,7 +83,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_get_trips(self):
         """Test for successful GET trips"""
-        res = self.client().get("/trips")
+        res = self.client().get("/trips", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)  # Good request code
@@ -79,7 +93,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_invalid_page_get_bikes(self):
         """Tests for 404 error in GET bikes"""
-        res = self.client().get("/bikes?page=10000")
+        res = self.client().get("/bikes?page=10000", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -88,7 +102,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_invalid_page_get_stations(self):
         """Tests for 404 error in GET stations"""
-        res = self.client().get("/stations?page=10000")
+        res = self.client().get(
+            "/stations?page=10000", headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -97,7 +113,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_invalid_page_get_riders(self):
         """Tests for 404 error in GET riders"""
-        res = self.client().get("/riders?page=10000")
+        res = self.client().get("/riders?page=10000", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -106,7 +122,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_invalid_page_get_trips(self):
         """Tests for 404 error in trips"""
-        res = self.client().get("/trips?page=10000")
+        res = self.client().get("/trips?page=10000", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -115,7 +131,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_1_create_bike(self):
         """Tests for successful POST of new bike"""
-        res = self.client().post("/bikes", json=self.test_bike)
+        res = self.client().post(
+            "/bikes", json=self.test_bike, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -125,7 +143,11 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_2_edit_bike(self):
         """Tests for seuccessful PATCH of Bike"""
-        res = self.client().patch("/bikes/1", json={"current_station_id": 10})
+        res = self.client().patch(
+            "/bikes/1",
+            json={"current_station_id": 10},
+            headers=self.manager_auth_header,
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -135,7 +157,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_3_delete_bike(self):
         """Tests for seuccessful DELETE of Bike"""
-        res = self.client().delete("/bikes/16")
+        res = self.client().delete("/bikes/16", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -149,10 +171,14 @@ class BikeSystemTest(unittest.TestCase):
 
         # fill station
         for i in range(Station.query.get(4).capacity):
-            self.client().post("/bikes", json=self.test_bike)
+            self.client().post(
+                "/bikes", json=self.test_bike, headers=self.manager_auth_header
+            )
 
         # one additional bike
-        res = self.client().post("/bikes", json=self.test_bike)
+        res = self.client().post(
+            "/bikes", json=self.test_bike, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 400)
@@ -169,6 +195,7 @@ class BikeSystemTest(unittest.TestCase):
                 "electric": False,
                 "current_station_id": 100,
             },
+            headers=self.manager_auth_header,
         )
         data = json.loads(res.data)
 
@@ -178,7 +205,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_422_bad_bike_creation(self):
         """Tests for bad POST request to bikes"""
-        res = self.client().post("/bikes", json={"current_station_id": 1})
+        res = self.client().post(
+            "/bikes", json={"current_station_id": 1}, headers=self.manager_auth_header
+        )
 
         data = json.loads(res.data)
 
@@ -188,7 +217,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_update_bike_fail(self):
         """Tests for bad PATCH requests to bikes"""
-        res = self.client().patch("/bikes/100", json={"electric": True})
+        res = self.client().patch(
+            "/bikes/100", json={"electric": True}, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -197,7 +228,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_delete_bike_fail(self):
         """Tests for bad DELETE requests to bikes"""
-        res = self.client().delete("/bikes/100")
+        res = self.client().delete("/bikes/100", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -206,7 +237,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_1_create_station(self):
         """Tests for successful POST of new station"""
-        res = self.client().post("/stations", json=self.test_station)
+        res = self.client().post(
+            "/stations", json=self.test_station, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -216,7 +249,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_2_edit_station(self):
         """Tests for seuccessful PATCH of Station"""
-        res = self.client().patch("/stations/1", json={"capacity": 50})
+        res = self.client().patch(
+            "/stations/1", json={"capacity": 50}, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -226,7 +261,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_3_delete_station(self):
         """Tests for seuccessful DELETE of station"""
-        res = self.client().delete("/stations/12")
+        res = self.client().delete("/stations/12", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -237,7 +272,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_422_bad_station_creation(self):
         """Tests for bad POST request to stations"""
-        res = self.client().post("/stations", json={"capacity": 1})
+        res = self.client().post(
+            "/stations", json={"capacity": 1}, headers=self.manager_auth_header
+        )
 
         data = json.loads(res.data)
 
@@ -247,7 +284,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_update_station_fail(self):
         """Tests for bad PATCH requests to stations"""
-        res = self.client().patch("/stations/100", json={"active": "string"})
+        res = self.client().patch(
+            "/stations/100", json={"active": "string"}, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -256,7 +295,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_delete_station_fail(self):
         """Tests for bad DELETE requests to stations"""
-        res = self.client().delete("/stations/100")
+        res = self.client().delete("/stations/100", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -265,7 +304,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_1_create_rider(self):
         """Tests for successful POST of new rider"""
-        res = self.client().post("/riders", json=self.test_rider)
+        res = self.client().post(
+            "/riders", json=self.test_rider, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -275,7 +316,11 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_2_edit_rider(self):
         """Tests for seuccessful PATCH of rider"""
-        res = self.client().patch("/riders/1", json={"address": "Address Test"})
+        res = self.client().patch(
+            "/riders/1",
+            json={"address": "Address Test"},
+            headers=self.manager_auth_header,
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -285,7 +330,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_3_delete_rider(self):
         """Tests for seuccessful DELETE of rider"""
-        res = self.client().delete("/riders/13")
+        res = self.client().delete("/riders/13", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -296,7 +341,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_422_bad_rider_creation(self):
         """Tests for bad POST request to rider"""
-        res = self.client().post("/riders", json={"email": 1})
+        res = self.client().post(
+            "/riders", json={"email": 1}, headers=self.manager_auth_header
+        )
 
         data = json.loads(res.data)
 
@@ -306,7 +353,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_update_rider_fail(self):
         """Tests for bad PATCH requests to riders"""
-        res = self.client().patch("/riders/100", json={"email": "string"})
+        res = self.client().patch(
+            "/riders/100", json={"email": "string"}, headers=self.manager_auth_header
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -315,7 +364,7 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_delete_rider_fail(self):
         """Tests for bad DELETE requests to riders"""
-        res = self.client().delete("/riders/100")
+        res = self.client().delete("/riders/100", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
@@ -324,7 +373,11 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_1_start_trip(self):
         """Tests for successful start trip POST request to trips"""
-        res = self.client().post("/trips", json={"rider_id": 5, "bike_id": 5})
+        res = self.client().post(
+            "/trips",
+            json={"rider_id": 5, "bike_id": 5},
+            headers=self.manager_auth_header,
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -333,7 +386,11 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_2_400_bike_already_on_trip(self):
         """Tests for prevention of double taking out a bike"""
-        res = self.client().post("/trips", json={"rider_id": 5, "bike_id": 5})
+        res = self.client().post(
+            "/trips",
+            json={"rider_id": 5, "bike_id": 5},
+            headers=self.manager_auth_header,
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 400)
@@ -342,7 +399,11 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_3_end_trip(self):
         """Tests for successful end of trip"""
-        res = self.client().patch("/trips/13", json={"destination_station_id": 11})
+        res = self.client().patch(
+            "/trips/13",
+            json={"destination_station_id": 11},
+            headers=self.manager_auth_header,
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
@@ -351,7 +412,9 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_422_trip_start_fail(self):
         """Tests for bad POST request to start a trip"""
-        res = self.client().post("/trips", json={"email": 1})
+        res = self.client().post(
+            "/trips", json={"email": 1}, headers=self.manager_auth_header
+        )
 
         data = json.loads(res.data)
 
@@ -361,7 +424,11 @@ class BikeSystemTest(unittest.TestCase):
 
     def test_404_trip_end_fail(self):
         """Tests for bad PATCH request to end a trip"""
-        res = self.client().patch("/trips/10000", json={"destination_station_id": 9})
+        res = self.client().patch(
+            "/trips/10000",
+            json={"destination_station_id": 9},
+            headers=self.manager_auth_header,
+        )
 
         data = json.loads(res.data)
 
@@ -372,14 +439,50 @@ class BikeSystemTest(unittest.TestCase):
     def test_400_too_many_bikes_at_station_on_trip_end(self):
 
         # start one additional trip
-        self.client().post("/trips", json={"bike_id": 1, "rider_id": 1})
+        self.client().post(
+            "/trips",
+            json={"bike_id": 1, "rider_id": 1},
+            headers=self.manager_auth_header,
+        )
         # end trip at filled station
-        res = self.client().patch("/trips/14", json={"destination_station_id": 4})
+        res = self.client().patch(
+            "/trips/14",
+            json={"destination_station_id": 4},
+            headers=self.manager_auth_header,
+        )
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 400)
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "Bad request. Please try again")
+
+    def test_401_no_authorization_header(self):
+        res = self.client().get("/trips")
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"]["code"], "authorization_header_missing")
+
+    def test_403_not_permitted_request(self):
+        """Rider Role Not allowed to post to stations"""
+        res = self.client().post(
+            "/stations", json=self.test_station, headers=self.rider_auth_header
+        )
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"]["code"], "invalid_claims")
+
+    def test_403_not_permitted_request(self):
+        """Rider Role Not allowed to get other rider information"""
+        res = self.client().get("/riders", headers=self.rider_auth_header)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"]["code"], "invalid_claims")
 
 
 if __name__ == "__main__":

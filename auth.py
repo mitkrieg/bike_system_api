@@ -71,8 +71,6 @@ def check_permissions(permission, payload):
     """Checks for valid permissions"""
 
     # check for permissions list included in payload otherwise return 403
-    print(permission)
-    print(payload)
     if "permissions" not in payload:
         raise AuthError(
             {
