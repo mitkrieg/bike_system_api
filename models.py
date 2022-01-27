@@ -3,13 +3,17 @@ from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Float, Date
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-DATABASE_NAME = os.getenv("DB_NAME", "bike_system")
-DATABASE_USER = os.getenv("DB_USER", "postgres")
-DATABASE_PASSWORD = os.getenv("DB_PASS", "postgres")
-DATABASE_HOST = os.getenv("DB_HOST", "localhost:5432")
-DATABASE_PATH = (
-    f"postgresql://{DATABASE_USER}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{DATABASE_NAME}"
-)
+### DB URI to run locally
+# DATABASE_NAME = os.getenv("DB_NAME", "bike_system")
+# DATABASE_USER = os.getenv("DB_USER", "postgres")
+# DATABASE_PASSWORD = os.getenv("DB_PASS", "postgres")
+# DATABASE_HOST = os.getenv("DB_HOST", "localhost:5432")
+# DATABASE_PATH = (
+#     f"postgresql://{DATABASE_USER}:{DATABASE_PASSWORD}@{DATABASE_HOST}/{DATABASE_NAME}"
+# )
+
+### DB URI for deployment
+DATABASE_PATH = os.getenv("DATABASE_URL")
 
 db = SQLAlchemy()
 
