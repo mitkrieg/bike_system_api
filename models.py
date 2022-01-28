@@ -13,7 +13,7 @@ from flask_migrate import Migrate
 # )
 
 ### DB URI for deployment
-DATABASE_PATH = os.getenv("DATABASE_URI")
+DATABASE_PATH = os.getenv("DATABASE_URL")
 
 db = SQLAlchemy()
 
