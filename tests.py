@@ -3,7 +3,7 @@ import json
 from wsgiref import headers
 from flask_sqlalchemy import SQLAlchemy
 import os
-from api import create_app
+from app import create_app
 from models import setup_db, Station, Bike, Trip, Rider, DATABASE_PATH
 
 
