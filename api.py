@@ -2,11 +2,11 @@ from datetime import datetime as dt
 from logging import exception
 
 from sqlalchemy import func
-from .models import Rider, Station, Bike, Trip, setup_db
+from models import Rider, Station, Bike, Trip, setup_db
 from flask_moment import Moment
 from flask_cors import CORS
 from flask import Flask, Response, request, abort, jsonify
-from .auth import AuthError, requires_auth
+from auth import AuthError, requires_auth
 
 # from .auth.auth import AuthError, requires_auth
 
