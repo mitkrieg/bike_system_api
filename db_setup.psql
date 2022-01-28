@@ -216,7 +216,7 @@ ALTER TABLE ONLY public.trips ALTER COLUMN id SET DEFAULT nextval('public.trips_
 --
 
 COPY public.alembic_version (version_num) FROM stdin;
-c8b4f866ffa9
+8f7bb7718b39
 \.
 
 
