@@ -43,7 +43,9 @@ class Bike(db.Model):
     electric = Column(Boolean, nullable=False)
     needs_maintenance = Column(Boolean, default=False)
     current_station_id = Column(Integer, ForeignKey("stations.id"))
-    trips = db.relationship("Trip", backref="bikes", lazy="joined")
+    trips = db.relationship(
+        "Trip", backref="bikes", lazy="joined", cascade="save-update"
+    )
 
     def __init__(self, model, electric, manufactured_at, current_station_id):
         self.model = model
@@ -82,7 +84,9 @@ class Station(db.Model):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     active = Column(Boolean, default=True)
-    bikes = db.relationship("Bike", backref="stations", lazy="joined")
+    bikes = db.relationship(
+        "Bike", backref="stations", lazy="joined", cascade="save-update"
+    )
 
     def __init__(self, name, capacity, latitude, longitude):
         self.name = name
@@ -192,7 +196,7 @@ class Trip(db.Model):
         rider = Rider.query.get(self.rider_id)
         orgi_station = Station.query.get(self.origination_station_id)
 
-        # return if trip has not ended
+        # return if trip has ended
         if self.destination_station_id is not None:
             dest_station = Station.query.get(self.destination_station_id)
             return {
@@ -207,7 +211,7 @@ class Trip(db.Model):
                 "start_time": self.start_time,
                 "end_time": self.end_time,
             }
-        # return if ended
+        # return if not ended
         else:
             return {
                 "id": self.id,

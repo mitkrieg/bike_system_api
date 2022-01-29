@@ -142,7 +142,7 @@ class BikeSystemTest(unittest.TestCase):
         self.assertTrue(Bike.query.order_by(Bike.model == "test").all())
 
     def test_2_edit_bike(self):
-        """Tests for seuccessful PATCH of Bike"""
+        """Tests for successful PATCH of Bike"""
         res = self.client().patch(
             "/bikes/1",
             json={"current_station_id": 10},
@@ -156,7 +156,7 @@ class BikeSystemTest(unittest.TestCase):
         self.assertEqual(data["bike_updated"]["id"], 1)
 
     def test_3_delete_bike(self):
-        """Tests for seuccessful DELETE of Bike"""
+        """Tests for successful DELETE of Bike"""
         res = self.client().delete("/bikes/16", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
@@ -248,7 +248,7 @@ class BikeSystemTest(unittest.TestCase):
         self.assertTrue(Station.query.order_by(Station.name == "Test Street").all())
 
     def test_2_edit_station(self):
-        """Tests for seuccessful PATCH of Station"""
+        """Tests for successful PATCH of Station"""
         res = self.client().patch(
             "/stations/1", json={"capacity": 50}, headers=self.manager_auth_header
         )
@@ -260,15 +260,35 @@ class BikeSystemTest(unittest.TestCase):
         self.assertEqual(data["station_updated"]["id"], 1)
 
     def test_3_delete_station(self):
-        """Tests for seuccessful DELETE of station"""
-        res = self.client().delete("/stations/12", headers=self.manager_auth_header)
+        """Tests for successful DELETE of station"""
+        res = self.client().delete("/stations/13", headers=self.manager_auth_header)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data["success"], True)
-        self.assertEqual(data["total_num_stations"], 11)
+        self.assertEqual(data["total_num_stations"], 12)
         self.assertEqual(len(data["stations"]), 10)
-        self.assertEqual(data["deleted_station_id"], 12)
+        self.assertEqual(data["deleted_station_id"], 13)
+
+    def test_0_bikes_at_station(self):
+        """Tests for successful GET request of bikes at a selected station"""
+        res = self.client().get("/stations/1/bikes", headers=self.rider_auth_header)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
+        self.assertEqual(len(data["bikes"]), data["num_bikes"])
+        self.assertTrue(data["station_info"])
+
+    def test_0_bikes_at_station(self):
+        """Tests for successful GET request of trips for a selected rider"""
+        res = self.client().get("/riders/1/trips", headers=self.manager_auth_header)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
+        self.assertEqual(len(data["trips"]), data["num_trips"])
+        self.assertTrue(data["rider_info"])
 
     def test_422_bad_station_creation(self):
         """Tests for bad POST request to stations"""
@@ -315,7 +335,7 @@ class BikeSystemTest(unittest.TestCase):
         self.assertTrue(Rider.query.order_by(Rider.name == "Test").all())
 
     def test_2_edit_rider(self):
-        """Tests for seuccessful PATCH of rider"""
+        """Tests for successful PATCH of rider"""
         res = self.client().patch(
             "/riders/1",
             json={"address": "Address Test"},
@@ -329,7 +349,7 @@ class BikeSystemTest(unittest.TestCase):
         self.assertEqual(data["rider_updated"]["id"], 1)
 
     def test_3_delete_rider(self):
-        """Tests for seuccessful DELETE of rider"""
+        """Tests for successful DELETE of rider"""
         res = self.client().delete("/riders/13", headers=self.manager_auth_header)
         data = json.loads(res.data)
 

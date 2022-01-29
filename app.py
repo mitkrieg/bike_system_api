@@ -103,14 +103,14 @@ def create_app():
                 current_station_id=current_station_id,
             )
 
+            bike.insert()
+
             bikes = Bike.query.order_by(Bike.id).all()
             current_page = paginate(request, bikes)
 
             # if no bikes on page return 404
             if len(current_page) == 0:
                 abort(404)
-
-            bike.insert()
 
             return jsonify(
                 {
@@ -201,6 +201,8 @@ def create_app():
             abort(422)
 
     ### Stations ###
+
+    # get all stations
     @app.route("/stations")
     @requires_auth(permission="get:stations")
     def get_stations(payload):
@@ -209,8 +211,10 @@ def create_app():
             stations = Station.query.order_by(Station.id).all()
             current_page = paginate(request, stations)
         except Exception as e:
+            print(e)
             abort(422)
 
+        # return 404 if none found on page
         if len(current_page) == 0:
             abort(404)
 
@@ -223,10 +227,35 @@ def create_app():
             }
         )
 
+    # get a specific station and bikes at that station
+    @app.route("/stations/<station_id>/bikes")
+    @requires_auth(permission="get:stations")
+    def get_bikes_at_station(payload, station_id):
+
+        station = Station.query.get(station_id)
+
+        # return 404 if station not found
+        if station is None:
+            abort(404)
+
+        # gets bikes at station
+        bikes = [bike.format() for bike in station.bikes]
+
+        return jsonify(
+            {
+                "success": True,
+                "station_info": station.format(),
+                "bikes": bikes,
+                "num_bikes": len(bikes),
+            }
+        )
+
+    # create new station
     @app.route("/stations", methods=["POST"])
     @requires_auth(permission="edit:stations")
     def create_station(payload):
 
+        # retreive request and data
         body = request.get_json()
 
         name = body.get("name", None)
@@ -234,14 +263,8 @@ def create_app():
         latitude = body.get("latitude", None)
         longitude = body.get("longitude", None)
 
-        stations = Station.query.order_by(Station.id).all()
-        current_page = paginate(request, stations)
-
-        if len(current_page) == 0:
-            abort(404)
-
         try:
-
+            # create new station
             station = Station(
                 name=name,
                 capacity=capacity,
@@ -250,6 +273,13 @@ def create_app():
             )
 
             station.insert()
+
+            stations = Station.query.order_by(Station.id).all()
+            current_page = paginate(request, stations)
+
+            # if none found on page return 404
+            if len(current_page) == 0:
+                abort(404)
 
             return jsonify(
                 {
@@ -263,11 +293,13 @@ def create_app():
         except:
             abort(422)
 
+    # delete station
     @app.route("/stations/<station_id>", methods=["DELETE"])
     @requires_auth(permission="edit:stations")
     def delete_station(payload, station_id):
         station = Station.query.get(station_id)
 
+        # if station not found return 404
         if station is None:
             abort(404)
 
@@ -281,12 +313,14 @@ def create_app():
                     "success": True,
                     "deleted_station_id": int(station_id),
                     "stations": current_page,
+                    "page": request.args.get("page", 1, type=int),
                     "total_num_stations": len(remaining_stations),
                 }
             )
         except:
-            abort(500)
+            abort(422)
 
+    # update selected station
     @app.route("/stations/<station_id>", methods=["PATCH"])
     @requires_auth(permission="edit:stations")
     def update_station(payload, station_id):
@@ -301,6 +335,7 @@ def create_app():
 
         station = Station.query.get(station_id)
 
+        # only update is attribute is present
         if station is None:
             abort(404)
 
@@ -351,6 +386,30 @@ def create_app():
             }
         )
 
+        # get a specific station and bikes at that station
+
+    @app.route("/riders/<rider_id>/trips")
+    @requires_auth(permission="get:riders")
+    def get_trips_of_rider(payload, rider_id):
+
+        rider = Rider.query.get(rider_id)
+
+        # return 404 if station not found
+        if rider is None:
+            abort(404)
+
+        # gets bikes at station
+        trips = [trip.format() for trip in rider.trips]
+
+        return jsonify(
+            {
+                "success": True,
+                "rider_info": rider.format(),
+                "trips": trips,
+                "num_trips": len(trips),
+            }
+        )
+
     @app.route("/riders", methods=["POST"])
     @requires_auth(permission="edit:riders")
     def create_rider(payload):
@@ -394,14 +453,15 @@ def create_app():
     @app.route("/riders/<rider_id>", methods=["DELETE"])
     @requires_auth(permission="edit:riders")
     def delete_rider(payload, rider_id):
-        rider = Station.query.get(rider_id)
+        rider = Rider.query.get(rider_id)
+        print(rider)
 
         if rider is None:
             abort(404)
 
         try:
             rider.delete()
-            remaining_riders = Station.query.all()
+            remaining_riders = Rider.query.all()
             current_page = paginate(request, remaining_riders)
 
             return jsonify(
@@ -409,11 +469,12 @@ def create_app():
                     "success": True,
                     "deleted_rider_id": int(rider_id),
                     "riders": current_page,
+                    "page": request.args.get("page", 1, type=int),
                     "total_num_riders": len(remaining_riders),
                 }
             )
-        except:
-            abort(500)
+        except Exception as e:
+            abort(422)
 
     @app.route("/riders/<rider_id>", methods=["PATCH"])
     @requires_auth(permission="edit:riders")
@@ -482,6 +543,8 @@ def create_app():
 
         bike_id = body.get("bike_id", None)
         rider_id = body.get("rider_id", None)
+        print(bike_id)
+        print(rider_id)
         start_time = dt.now()
 
         # abort if bike is already taken on unended trip
@@ -492,6 +555,7 @@ def create_app():
 
         try:
             origination_station_id = Bike.query.get(bike_id).current_station_id
+            print(origination_station_id)
 
             trip = Trip(rider_id, origination_station_id, bike_id, start_time)
             trip.insert()
@@ -509,6 +573,7 @@ def create_app():
                 }
             )
         except Exception as e:
+            print(e)
             abort(422)
 
     @app.route("/trips/<trip_id>", methods=["PATCH"])
