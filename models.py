@@ -1,5 +1,14 @@
 import os
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Float, DateTime
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Boolean,
+    ForeignKey,
+    Float,
+    DateTime,
+    null,
+)
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
@@ -162,8 +171,8 @@ class Trip(db.Model):
     id = Column(Integer, primary_key=True)
     origination_station_id = Column(Integer, ForeignKey("stations.id"), nullable=False)
     destination_station_id = Column(Integer, ForeignKey("stations.id"))
-    bike_id = Column(Integer, ForeignKey("bikes.id"))
-    rider_id = Column(Integer, ForeignKey("riders.id"))
+    bike_id = Column(Integer, ForeignKey("bikes.id"), nullable=False)
+    rider_id = Column(Integer, ForeignKey("riders.id"), nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime)
 
