@@ -124,11 +124,13 @@ def create_app():
         except:
             abort(422)
 
+    # delete a bike
     @app.route("/bikes/<bike_id>", methods=["DELETE"])
     @requires_auth(permission="edit:bikes")
     def delete_bike(payload, bike_id):
         bike = Bike.query.get(bike_id)
 
+        # if bike not found return 404
         if bike is None:
             abort(404)
 
@@ -149,10 +151,12 @@ def create_app():
         except:
             abort(500)
 
+    # update bikes
     @app.route("/bikes/<bike_id>", methods=["PATCH"])
     @requires_auth(permission="edit:bikes")
     def update_bike(payload, bike_id):
 
+        # get info from request
         body = request.get_json()
 
         model = body.get("model", None)
@@ -161,11 +165,14 @@ def create_app():
         current_station_id = body.get("current_station_id", None)
         needs_maintenance = body.get("needs_maintenance", None)
 
+        # get bike object
         bike = Bike.query.get(bike_id)
 
+        # return 404 if bike not in database
         if bike is None:
             abort(404)
 
+        # update info only when present request
         if model is not None:
             bike.model = model
 
@@ -177,6 +184,7 @@ def create_app():
 
         if current_station_id is not None:
 
+            # if station does not exist return 404
             if current_station_id not in [
                 station.id for station in Station.query.all()
             ]:
@@ -184,6 +192,7 @@ def create_app():
 
             station = Station.query.get(current_station_id)
 
+            # If there is too many bikes at station return 400
             if station.capacity <= len(station.bikes):
                 abort(400)
 
@@ -211,7 +220,6 @@ def create_app():
             stations = Station.query.order_by(Station.id).all()
             current_page = paginate(request, stations)
         except Exception as e:
-            print(e)
             abort(422)
 
         # return 404 if none found on page
@@ -363,7 +371,7 @@ def create_app():
             abort(422)
 
     #### Riders ####
-
+    # get riders
     @app.route("/riders")
     @requires_auth(permission="get:riders")
     def get_riders(payload):
@@ -374,6 +382,7 @@ def create_app():
         except Exception as e:
             abort(422)
 
+        # return 404 if no riders on page
         if len(current_page) == 0:
             abort(404)
 
@@ -410,10 +419,12 @@ def create_app():
             }
         )
 
+    # create new rider
     @app.route("/riders", methods=["POST"])
     @requires_auth(permission="edit:riders")
     def create_rider(payload):
 
+        # get data from request
         body = request.get_json()
 
         name = body.get("name", None)
@@ -422,7 +433,7 @@ def create_app():
         membership = body.get("membership", None)
 
         try:
-
+            # create new rider
             rider = Rider(
                 name=name,
                 email=email,
@@ -435,6 +446,7 @@ def create_app():
             riders = Rider.query.order_by(Rider.id).all()
             current_page = paginate(request, riders)
 
+            # return 404 if no riders on page
             if len(current_page) == 0:
                 abort(404)
 
@@ -450,12 +462,14 @@ def create_app():
         except:
             abort(422)
 
+    # delete rider
     @app.route("/riders/<rider_id>", methods=["DELETE"])
     @requires_auth(permission="edit:riders")
     def delete_rider(payload, rider_id):
         rider = Rider.query.get(rider_id)
         print(rider)
 
+        # if rider does not exist return 404
         if rider is None:
             abort(404)
 
@@ -463,6 +477,10 @@ def create_app():
             rider.delete()
             remaining_riders = Rider.query.all()
             current_page = paginate(request, remaining_riders)
+
+            # return 404 if no riders on page
+            if len(current_page) == 0:
+                abort(404)
 
             return jsonify(
                 {
@@ -476,10 +494,12 @@ def create_app():
         except Exception as e:
             abort(422)
 
+    # patch rider
     @app.route("/riders/<rider_id>", methods=["PATCH"])
     @requires_auth(permission="edit:riders")
     def update_rider(payload, rider_id):
 
+        # get data
         body = request.get_json()
 
         name = body.get("name", None)
@@ -487,10 +507,14 @@ def create_app():
         address = body.get("address", None)
         membership = body.get("membership", None)
 
+        # get rider
         rider = Rider.query.get(rider_id)
+
+        # return 404 if rider does not exist
         if rider is None:
             abort(404)
 
+        # onlu update rider information as needed
         if name is not None:
             rider.name = name
 
@@ -512,7 +536,7 @@ def create_app():
             abort(422)
 
     #### Trips ####
-
+    # get list of trips
     @app.route("/trips")
     @requires_auth(permission="get:trips")
     def get_trips(payload):
@@ -523,6 +547,7 @@ def create_app():
         except Exception as e:
             abort(422)
 
+        # return 404 if no trips on page
         if len(current_page) == 0:
             abort(404)
 
@@ -535,16 +560,16 @@ def create_app():
             }
         )
 
+    # Start a trip
     @app.route("/trips", methods=["POST"])
     @requires_auth("create:trips")
     def start_trip(payload):
 
+        # get trip info from request
         body = request.get_json()
 
         bike_id = body.get("bike_id", None)
         rider_id = body.get("rider_id", None)
-        print(bike_id)
-        print(rider_id)
         start_time = dt.now()
 
         # abort if bike is already taken on unended trip
@@ -554,9 +579,10 @@ def create_app():
             abort(400)
 
         try:
+            # Get original station wherever the bike currently is
             origination_station_id = Bike.query.get(bike_id).current_station_id
-            print(origination_station_id)
 
+            # create strip and insert into db
             trip = Trip(rider_id, origination_station_id, bike_id, start_time)
             trip.insert()
 
@@ -573,13 +599,14 @@ def create_app():
                 }
             )
         except Exception as e:
-            print(e)
             abort(422)
 
+    # end a trip
     @app.route("/trips/<trip_id>", methods=["PATCH"])
     @requires_auth("create:trips")
     def end_trip(payload, trip_id):
 
+        # get ending location
         body = request.get_json()
         destination_station_id = body.get("destination_station_id", None)
 
@@ -589,6 +616,7 @@ def create_app():
         if trip is None:
             abort(404)
 
+        # get bike used in trip and end station
         bike = Bike.query.get(trip.bike_id)
         end_station = Station.query.get(destination_station_id)
 
